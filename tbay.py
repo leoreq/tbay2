@@ -1,9 +1,9 @@
-from tokenize import Floatnumber
+
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, Float
+from sqlalchemy import Column, Integer, String, DateTime, Float, ForeignKey,Table
 
 #The engine is created, this is the one that will translate python into SQL statements. This will talk directly to the database with SQL commands.
 engine = create_engine('postgresql://leex:thinkful@localhost:5432/tbay')
@@ -13,6 +13,11 @@ session=Session()
 #This declarative base is like the model repository. This is the one that will create the create table statements, in order to build the database structure
 Base=declarative_base()
 
+
+item_bidders_table = Table('item_bidders_association',Base.metadata,
+    Column("bid_id",Integer,ForeignKey("bids.id")),
+    Column("bidder_id",Integer,ForeignKey("users.id"))
+)
 class Item(Base):
     __tablename__ = "items"
 
@@ -20,6 +25,8 @@ class Item(Base):
     name=Column(String,nullable=False)
     description=Column(String)
     start_time=Column(DateTime,default=datetime.utcnow)
+    owner_id=Column(Integer,ForeignKey('users.id'),nullable=False)
+    bids=relationship("Bid",backref="target_item")
 
 class User(Base):
     __tablename__ = "users"
@@ -27,11 +34,14 @@ class User(Base):
     id = Column(Integer,primary_key=True)
     username= Column(String, nullable=False)
     password= Column(String,nullable=False)
+    auctions=relationship("Item",backref="owner")
+    bids=relationship("Bid",secondary="item_bidders_association",backref="bidder")
 
 class Bid(Base):
     __tablename__ = "bids"
 
     id = Column(Integer,primary_key=True)
     price= Column(Float, nullable=False)
+    item_id=Column(Integer,ForeignKey('items.id'),nullable=False)
 
 Base.metadata.create_all(engine)
